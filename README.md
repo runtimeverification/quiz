@@ -1,9 +1,10 @@
-# quiz
+# %quiz
+
 A randomized property testing library for Hoon.
 
 # Start Here
 
-1. Write your Hoon app
+1. Write your Urbit app
 2. Install %quiz
 3. Run tests with random inputs
 
