@@ -1,3 +1,5 @@
+![quiz logo](./logo.png)
+
 # %quiz
 
 A randomized property testing library for Hoon.
