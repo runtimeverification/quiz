@@ -57,7 +57,7 @@
       $(rng next-rng, size new-size)
     ~&  %tired
     (fin run-i drop)
-  =.  tried  (~(put in tried) sam)
+  =.  tried  (~(put in tried) q.sam)
   :: slam the fate with the random sample.
   :: virtualized slam to catch and report crashes.
   ::
