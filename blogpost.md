@@ -1,31 +1,48 @@
 # What is %quiz
 
 In short, `%quiz` is a property testing library for Hoon.
+It will test your code with lots of random values to see if it breaks.
 
 In long, what this means is that you write tests for your code with the help of `%quiz`, which means you will find bugs and fix them.
-It's called 'property test' because you write your tests as 'properties': code that should always return `%.y` if your code is bug free.
+It's called 'property test' because you write your tests as 'properties': code that should always return `%.y`.
+Your job is to think up good properties and test your code against them.
+It's a great complement for unit testing.
 
-For example, a property we can state about the `dec` function is that it's the inverse of incrementation (`.+`).
+For example, a property we could state about the `dec` function is that it's the inverse of incrementation (`.+`).
 Therefore, decrementing `n` and then incrementing it should give us back `n`. 
-So for all atoms `n`, the following returns `%.y`:
+In math, all we're saying is that `(n - 1) + 1 = n` .
+In Hoon, we say the following:
 
 ```
 .=  n  .+  (dec n)
 ```
 
 The way we express these properties is by putting them in a gate.
-See that "for all atoms `n`" in the paragraph above?
 We express that with the help of our gate, by its sample.
-If you're into formal logic you know that we are "quantifying over `n`".
+If we want to say "for all atoms `n` ..." in Hoon, we write:
+
+```
+|=  n=@
+...  :: some property of n
+```
+
+
+---
+
+*Aside:*
+
+If you're into formal logic you know that we are "universally quantifying over `n`".
 The formula above in something like Peano logic would look like this. (Where we define a decrement `D` with `D(S(n)) = n`):
 
 ```
 ∀ n ∈ ℕ. n = S(D(n))
 ```
 
-(If you don't follow this notation don't worry, you can just skip it.)
+(If you don't follow this notation don't worry, you can just skip these asides.)
 
-Let's check this property.
+--- 
+
+Let's check this property of `dec`.
 First we need to install `%quiz`.
 We grab it from my moon, and use `%take-this` to tell Clay that we only want the files in the desk that are not already in `%base` -- this is fine because `%quiz` is just a set of files otherwise not found in `%base`.
 
@@ -35,12 +52,15 @@ We grab it from my moon, and use `%take-this` to tell Clay that we only want the
 
 You should see a message of the merging of a number of files: one library, one generator, and some tests.
 
-Note:
+---
+
+*Aside*
+
 If you know your way around tests already, and you've got some Hoon experience, you could dive into those test files.
 They contain comments and examples that should teach you all you need to get going.
 If you want an easier introduction you can keep following along in this blog post.
 
-Okay, back to our property.
+---
 
 ```
 .=  n  .+  (dec n)
@@ -53,12 +73,11 @@ We want to quantify it so that it holds over all atoms `n` and test it.
 .=  n  .+  (dec n)
 ```
 
-Quick aside:
-This is what we call a "fate" in %quiz.
-As the name implies, it tells you what piece of code is destined to do, unless something is amiss in the world (a bug).
-The terms we use in `%quiz` bring to mind an ancient Viking (to honor the author's heritage) visiting a seer to find out their fate, what they need to do, and getting help to ensure they are on the right path -- a nice epic image of what testing your code should be like.
+A note on terminology:
+If you just know that a "fate" is a specification and that "norns" can be used to generate input for your spec, you know all you need about `%quiz` terminology.
+As the name implies, a fate should describe you what piece of code is destined to do, unless something is amiss in the world (a bug or an incorrect divination where the fate you wrote is not correct).
+The terms we use in `%quiz` bring to mind an ancient Viking visiting a seer to find out their fate, what they need to do, and getting help to ensure they are on the right path -- a nice epic image of what testing your code should be like.
 They have a fate, they are quizzed on it, they may heed that fate (good) or defy it (bad), and they can use [norns](https://en.wikipedia.org/wiki/Norns) to aid them in seeing if there are any issues.
-If you just know that a fate is a spec and that norns can be used to generate input for your spec, you know all you need about this terminology.
 
 So we have our fate defined.
 We can now quiz it in the dojo.
@@ -79,7 +98,7 @@ You should have gotten an error.
 [[%defy-with-sam "n=0"] %drops 0]
 ```
 
-As you might have guessed, some input gave us a decrement underflow.
+As you may have guessed, some input gave us a decrement underflow.
 If you look at the second line, you can see an example of a sample that caused the code to defy it's fate: `n=0`.
 And as you can see, running this in the dojo:
 
@@ -93,8 +112,9 @@ And as you can see, running this in the dojo:
 You get a decrement underflow.
 And obviously, right?
 This is not an error in `dec`: it's an error in the fate we wrote.
-Decrementing 0 is an error!
+Decrementing 0 is an error in Hoon!
 
+Let's fix our fate:
 The first way is to exclude the sample 0 (the only one with this issue).
 We can do that by "dropping" that sample:
 
@@ -104,6 +124,17 @@ We can do that by "dropping" that sample:
 .=  n  .+  (dec n)
 ```
 
+This is quite a useful in many circumstances.
+`%quiz` will generate random inputs for you but some of them might be nonsensical for what you are testing.
+And just dropping those inputs is the fastest way to deal with it.
+
+The other way to fix our fate is to use "norns" to intelligently create inputs in a way that suits our function.
+We'll get to that later.
+
+---
+
+Aside:
+
 In formal logic you may assume that subtraction below 0 in natural numbers is undefined and use `%drop` as a sort of implication:
 
 ```
@@ -112,7 +143,9 @@ In formal logic you may assume that subtraction below 0 in natural numbers is un
 
 Again, if you're not familiar with this vocabulary and notation, just ignore it.
 
-If we quiz this fate:
+---
+
+Now let's quiz this new fate:
 
 ```
 +quiz !>
@@ -145,12 +178,12 @@ The easiest way to do that is to just add some debug printing inside the fate (n
 
 This prints lots of numbers (100 of them, in fact).
 If you read them top to bottom, you will find that they are generally growing in size.
-This is just useful heuristic: if there is a bug, it seems more likely it should be found at the edge cases of small numbers.
+This is just useful heuristic the library uses: if there is a bug, it is usually found at the edge cases of small numbers.
 The numbers chosen are random, but the distribution from which they are pulled is growing.
 
 If you run the generator again, you will again see a list of numbers, but this time it will be different numbers.
 
-Try again without or 0-check and see what happens:
+Try again without the 0-check and see what happens:
 
 ```
 +quiz !>
@@ -159,10 +192,10 @@ Try again without or 0-check and see what happens:
   .=  n  .+  (dec n)
 ```
 
-`%quiz` finds the bug right away and reports it.
+`%quiz` finds the bug on the first value it tries and reports it.
 It doesn't need to finish the 100 runs, it can simply report it back to you without trying more samples.
 
-Random sampling usually works well for some quick testing and will find many bugs for you.
+Random sampling usually works well for quick testing and will find many bugs for you.
 It's good enough, most of the time.
 However sometimes you want more control over the inputs, some way to generate them yourself, using some randomness
 This is where "norns" come in, and we'll get to them later.
@@ -175,9 +208,9 @@ We will use the same fate as before for simplicity.
 
 You can either start a new desk (`|new-desk %foo` in the dojo) or just use the `%base` desk.
 For this example I'll use the `%base` desk.
-Mount your desk with `|mount %base` and then locate the `base/` directory in your ship.
+Mount your desk with `|mount %base` and then locate the `base/` directory in your pier.
 Create a new Hoon file: `base/tests/my-test.hoon`.
-You may have a `tests` directory already or not; if you don't just create one.
+If you don't have a `base/tests` directory yet just create it.
 Now open `my-test.hoon` and create the following contents:
 
 ```
@@ -197,8 +230,6 @@ Now open `my-test.hoon` and create the following contents:
 --
 ```
 
-## A quick explainer on the structure:
-
 A test file should go in the `tests/` directory, and import the `test` library.
 Here we also import the `quiz` library.
 The rest of the file is a core, created with `|%`.
@@ -213,7 +244,7 @@ Then we call `expect` from the `test` library.
 This gate expects a vase (created with `!>`) as sample.
 The `expect` family of gates -- `expect`, `expect-eq` and `expect-fail` -- help manage the test runs and make the output readable.
 `expect` will simply say that the test passed if it gets the sample `%.y`, and otherwise will say that it failed.
-This is useful when we build a large test-suite: if we ran lots of test at the same time and one of them fails, the `test` library using `expect` will tell us at the end something failed.
+This is useful when we build a large test-suite: if we ran lots of test at the same time and one of them fails, the `test` library using `expect` will tell us at the end something failed, while still running all of them.
 
 So what do we pass as a sample to `expect`?
 Simply the result of running `check` from the `quiz` library.
@@ -268,7 +299,9 @@ To do that, we don't specify a specific Hoon file and instead ask the test runne
 -test /===/tests
 ```
 
-## Aside: the `+quiz` generator.
+---
+
+Aside: the `+quiz` generator.
 
 Open the `+quiz` generator: `base/gen/quiz.hoon`.
 All it does is import the `quiz` library, then run the fate you gave it (`vax`).
@@ -290,15 +323,58 @@ If we instead would have had the last line be `[%noun (check:quiz vax ~ ~)]` the
 As you can also see, the generator always passes `~` for both the norn and alts (the last arguments to `check`).
 There is no way to use more powerful features of the library that we'll cover from the generator: it's just a handy tool to quickly check fates without making a new test file.
 
+## Norns: smarter input generation
+
+`%quiz` has built-in support for generating valid samples for most gates -- really any sample that is not a core.
+Let's try a few.
+Try the following in the dojo, which will just print the different samples when requesting nouns, pairs, and lists:
+
+```
++quiz !>  |=(* ~&(+6 %.y))
++quiz !>  |=((pair @ud ?) ~&(+6 %.y))
++quiz !>  |=((list @) ~&(+6 %.y))
+```
+
+Pretty neat!
+You should see lots of output for each.
+But the lists are a little lackluster.
+The default way for `%quiz` to create most data structures unfortunately can't control for length, so most lists you end up with are quite short.
+To remedy this you can use an existing norn.
+By using the dedicated list norn you get samples of many different sizes.
+
+Norns are combinators.
+You can create more complex ones by combining simple primitives.
+The simplest norn is the `const` norn, which always just returns a constant value.
+Let's try it out.
+Add the following arm to your test file:
+
+```
+++  test-const
+  =/  fate
+    |=  n=@
+    ~&  n
+    .=  n  69
+  %-  expect:test
+  !>  %^  check:quiz
+        !>(fate)
+      `((const:norns.quiz @) 69)
+    ~
+```
+
+The norns take an aura (in this case `@`) and a further sample that tell it how to create random inputs.
+The backtick in front of the norn just makes it a unit.
+If you run this test, you get back a new result -- `%tired`.
+Since `%quiz` keeps track of all the inputs it has tried and only tries them once, it eventually has to give up for this particular example, because the norn only produces a single possible result!
+
+
+
+---- Scratchpad
+
 # Why do we write bugs?
 
 # Tests as documentation
 
 # Programming by contract
-
-
-
----- Scratchpad
 
 # A list example
 
@@ -340,7 +416,7 @@ You see the printed output
 ```
 
 What did that tell you? 
-It means %quiz generated 100 samples for you, and evaluate the gate you passed it (as a vase).
+It means `%quiz` generated 100 samples for you, and evaluate the gate you passed it (as a vase).
 
 Why 100?
 Why not.
