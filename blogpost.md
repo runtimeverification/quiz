@@ -323,6 +323,8 @@ If we instead would have had the last line be `[%noun (check:quiz vax ~ ~)]` the
 As you can also see, the generator always passes `~` for both the norn and alts (the last arguments to `check`).
 There is no way to use more powerful features of the library that we'll cover from the generator: it's just a handy tool to quickly check fates without making a new test file.
 
+--
+
 ## Norns: smarter input generation
 
 `%quiz` has built-in support for generating valid samples for most gates -- really any sample that is not a core.
@@ -363,19 +365,142 @@ Add the following arm to your test file:
 
 The norns take an aura (in this case `@`) and a further sample that tell it how to create random inputs.
 The backtick in front of the norn just makes it a unit.
-If you run this test, you get back a new result -- `%tired`.
+If you run this test, you get back a new kind of result -- `%tired`.
 Since `%quiz` keeps track of all the inputs it has tried and only tries them once, it eventually has to give up for this particular example, because the norn only produces a single possible result!
+So it's clear that `%quiz` was using our norn.
 
+Norns become important as you work with more complex data structures.
+`%quiz` does its best to produce inputs for your gates, but all it has to go on is the Hoon type enclosed in the vase you are passing to it.
+Hoon types are very powerful, but hard to inspect.
+There is no "list type", for example.
+Instead the type is a what is called a `%hold`, which is used to represent almost all data structures with possibly infinite content.
+For example, the lists that `%quiz` automatically generate end up being quite short (probability $2^{-1-n}$ for each length `n`).
+And the sets end up with possibly duplicate items and strange orders, because nothing in the type expresses that elements are unique.
 
+We could spend a lot of time implementing checks for all common types ...
+Or we could simply recognize the fact that for most use cases, all the relevant information is not encoded in the type anyway!
+For example, if you write a Gall app, your expected poke may be simple list object with a `%tas` and a `%ud` in them.
+But you know roughly what pokes could look like.
+They probably can't contain any data whatsoever (and if they do, you have some error handling to throw them out).
+If `%quiz` was to randomly generate `%poke`s for your app on its own most of them would be useless, and you'd end up thoroughly testing your error handling for pokes and nothing else.
 
----- Scratchpad
+Thus: if your input requires specific structure than a noun of a particular shape, you probably want to use a norn.
+You can write your own norn as a gate.
+For example, the following is a norn that returns only sorted lists of `@ud`s.
+
+```
+^-  (norn.quiz (list @ud))
+|=  [size=@ud rng=_og]
+|-
+^-  (list @ud)
+?:  =(0 size)
+  ~
+=^  ran  rng  (rads:rng size)
+[size $(size ran, rng rng)]
+```
+
+The type `norn.quiz` is defined as
+
+```
+  |$  [sam]
+  $-([@ud _og] sam)
+```
+
+So it's a gate taking a `@ud` (a size) and a random number generator, and returning whatever `sam` is.
+In our example above, a `(list @ud)`.
+So you can use Hoon's type checking to ensure that you are producing samples of the correct type when writing your own norn!
+
+As mentioned above, norns are combinators.
+The tutorial test file (named `examples/tests/01-quiz-tutorial.hoon`) in `%quiz` contains plenty of examples of building more complex norns from simpler ones, and lots of comments.
+You should now know enough about `%quiz` to look through it.
+
+# Alts
+
+There is one final aspect of `%quiz` that a user should know.
+It's not vital, but can help you with debugging when `%quiz` spits out a counterexample, but the counterexample is large.
+Just as `%quiz` will do its best to create samples for you, it will also do its best to shrink those examples for you when it encounters them, so that you get the smallest possible example.
+
+For example, consider the following fate:
+
+```
+|=  a=@  ?:  (gth a 500)  %.n  %.y
+```
+
+If you run this with the `+quiz` generator it will always come back with `a=501` as a sample that defies the fate.
+You can try this as many times as you like and you will always see the same result.
+How is it possible that it always finds the smallest possible counterexample?
+
+The technique is called "shrinking".
+`%quiz` has, for some data types, an ability to suggest a number of smaller alternatives to any given input.
+For example, for atoms, when it finds a counterexample `n` it will first try `n/2`.
+If it turns out `n/2` is a counterexample, it will try to shrink that further.
+If it's not a counterexample, it will try `n-1`.
+Again, if `n-1` it was a counterexample it will shrink further from there.
+If neither of these was a counterexample, it will consider the job done and return `n`.
+
+For each attempt at shrinking, it will simply pass the new candidate to the gate being tested.
+There's no magic here.
+
+Let's look at a sample execution with some print debugging.
+
+```
+> +quiz !>  |=  a=@   ~&  a  ?:  (gth a 500)  %.n  %.y
+509
+254
+508
+254
+507
+253
+506
+253
+505
+252
+504
+252
+503
+251
+502
+251
+501
+250
+500
+[[%defy-with-sam "a=501"] %drops 0]
+%.n
+```
+
+As you can see, the first counterexample we find is `509`.
+From there `%quiz` tries `254` which returns `%.y` and then `508` which returns `%.n`.
+So the shrinking will continue with `508`, and the same process will continue.
+When it gets to `501`, it will try `250` and `500`, both of which will return `%.y`, so `501` is the smallest counterexample it can find.
+
+If you try this with a pair instead, so the sample is `[a=@ b=@]` for example, you will find that `b` shrinks fast (since it doesn't matter in our example and `%quiz` always try halving first) while `a` shrinks slower, honing in on the right answer.
+
+Now, just as `%quiz` can't produce sensible input for any sample you want, it also can't produce sensible alternatives to all kinds of values.
+So `%quiz` gives you control: you can pass an `alts` gate to `check` that will be used to find smaller candidates to whatever failing sample it finds.
+Be careful though!
+If the alternatives you provide are not strictly "smaller" than the sample in some natural sense you may get an infinite loop.
+Don't worry though: since `%quiz` runs deterministically in your test file, you can always just remove the `alts` if you mess up.
+You don't have to worry about `%quiz` finding a one-in-a-million bug and then fail to report it because it got stuck shrinking forever.
+
+The alts you pass must be a list of vases, since they will be used as samples and that is what check expects for its inputs.
+
+If alts are a bit on the complicated side, don't worry: they are indeed useful but most of the time `%quiz` will do at least a decent job shrinking, and it's just a tool that will help you if your counterexamples end up being very big.
+
+# End notes
+
+That's it!
+You know all you need to know to start testing harder and faster in Hoon.
+Download `%quiz` and get started!
+And you can always reach out to us at Runtime Verification on either Urbit at ~bithex-topnym, or on [Discord](https://discord.com/invite/CurfmXNtbN) or [Telegram](https://t.me/rv_inc).
+
+# !!! ---- Scratchpad
 
 # Why do we write bugs?
 
 # Tests as documentation
 
 # Programming by contract
-
+    
 # A list example
 
 Let's say you implemented a list reverse function (because you forgot about `flop`).
