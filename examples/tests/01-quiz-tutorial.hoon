@@ -160,6 +160,13 @@
   ::
   =+  fate=!>(|=([a=(list @ud) b=(list @ud)] ^-(? =((flop (weld a b)) (weld (flop b) (flop a))))))
   %-  expect  !>((check fate ~ ~))
+++  test-jam-bug
+  :: TODO: Put this in its own file, for "known issues uncovered with %quiz" or something.
+  :: see the referenced issue
+  :: https://github.com/urbit/vere/pull/363
+  =+  fate=!>(|=(a=* ^-(? =(a (cue (jam a))))))
+  =+  gief=((const:nor @) (bex (bex 30)))
+  %-  expect  !>((check fate `gief ~))
 ++  test-norn-const
   ::
   :: here, part of the sample always stays the same, because we use the constant norn.
