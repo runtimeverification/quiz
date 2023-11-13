@@ -1,70 +1,61 @@
-# What is %quiz
+# What is `%quiz`?
 
-In short, `%quiz` is a property testing library for Hoon.
-It will test your code with lots of random values to see if it breaks.
+In short, `%quiz` is a property testing library for [Hoon](https://developers.urbit.org/overview/hoon). It tests your code with numerous random values to see if it breaks.
 
-In long, what this means is that you write tests for your code with the help of `%quiz`, which means you will find bugs and fix them.
-It's called 'property test' because you write your tests as 'properties': code that should always return `%.y`.
-Your job is to think up good properties and test your code against them.
-It's a great complement for unit testing.
+In more detail, using `%quiz` allows you to write tests for your code. This helps you identify and fix bugs.
 
-For example, a property we could state about the `dec` function is that it's the inverse of incrementation (`.+`).
-Therefore, decrementing `n` and then incrementing it should give us back `n`. 
-In math, all we're saying is that `(n - 1) + 1 = n` .
-In Hoon, we say the following:
+## What is Property Testing?
+Property testing is a great companion to unit testing. It is called "property testing" because you write your tests as "properties." As a coder your job is to come up with properties and you can used "property testing" to test your code against them.
 
+>[!Important]
+>I'm not sure I understand the need for this right here ": code that should always return `%.y`." So I removed it.
+
+For example let's look at the decrement function `dec`. One property we can state about the `dec` function is that it is the inverse of incrementation (`.+`). Therefore, if we decrement `n` and then increment it, we should get back `n`. In mathematical terms, this can be expressed as `(n - 1) + 1 = n` . 
+
+In Hoon, we express that as follows:
 ```
 .=  n  .+  (dec n)
 ```
+>[!Important]
+>If the assumption is that whoever reads this knows what "gate" means then this is probably fine. But I have no idea what that is referring too. I assume its something specific to the Hoon language. Potnetially adding a disclaimer at the top to say that it is assumed the read will have a basic knowledge of Hoon.
 
-The way we express these properties is by putting them in a gate.
-We express that with the help of our gate, by its sample.
-If we want to say "for all atoms `n` ..." in Hoon, we write:
+To express these properties, we enclose them in a gate. We express this using the sample of our gate. 
 
+In Hoon, if we want to say "for all atoms `n`...," we express it as the following:
 ```
 |=  n=@
 ...  :: some property of n
 ```
 
+> [!Note]
+> If you are familiar with formal logic, you may recognize that we are "universally quantifying over `n`". In something like Peano logic, the formula above would be represented as follows (where we define a decrement `D` with `D(S(n)) = n`):
+> ```
+> ∀ n ∈ ℕ. n = S(D(n))
+> ```
+> (If you don't follow this notation, don't worry, you can skip these Note sections.)
 
----
+## Let's check the `dec` property with `%quiz`
+### Step One: 
+Install `%quiz` We grab it from my moon and use `%take-this` to tell Clay that we only want the files in the desk that are not already in `%base`.
 
-*Aside:*
-
-If you're into formal logic you know that we are "universally quantifying over `n`".
-The formula above in something like Peano logic would look like this. (Where we define a decrement `D` with `D(S(n)) = n`):
-
-```
-∀ n ∈ ℕ. n = S(D(n))
-```
-
-(If you don't follow this notation don't worry, you can just skip these asides.)
-
---- 
-
-Let's check this property of `dec`.
-First we need to install `%quiz`.
-We grab it from my moon, and use `%take-this` to tell Clay that we only want the files in the desk that are not already in `%base` -- this is fine because `%quiz` is just a set of files otherwise not found in `%base`.
+This is fine because `%quiz` is a set of files that are not found in `%base` otherwise. To do this you will need to run the following:
 
 ```
 |merge %base ~mister-dister-bithex-topnym %quiz, =gem %take-this
 ```
 
-You should see a message of the merging of a number of files: one library, one generator, and some tests.
+After execution, you should see a message indicating the merging of severale files (a library, a generator, and some tests).
 
----
+>[!Note]
+> If you know your way around tests, and have some Hoon experience, you can dive into the test files.
+The test files include comments and examples that should teach you everything you need to know to get started.
+If you want an easier introduction you can continue following along in this blog post.
 
-*Aside*
-
-If you know your way around tests already, and you've got some Hoon experience, you could dive into those test files.
-They contain comments and examples that should teach you all you need to get going.
-If you want an easier introduction you can keep following along in this blog post.
-
----
-
-```
-.=  n  .+  (dec n)
-```
+>[!Important]
+> ```
+> .=  n  .+  (dec n)
+> ```
+> This has no context. This was the property that was used as an example earlier, if we are referring to it agaain perhaps that top  section should be moved over here.
 
 We want to quantify it so that it holds over all atoms `n` and test it.
 
