@@ -15,7 +15,10 @@
   [defy=defy runs=runs drops=drop]
 ++  run
   |=  [vax=vase sam=vase]
-  =/  tres=toon  (mong [q.vax q.sam] |=(^ ~))
+  (run-raw q.vax q.sam)
+++  run-raw
+  |=  [gat=* sam=*]
+  =/  tres=toon  (mong [gat sam] |=(^ ~))
   ?-  tres
     [%0 *]  p.tres            :: executed successfully
     [%1 *]  ~&  %why-scry  |  :: fate tried scrying
