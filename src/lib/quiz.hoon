@@ -3,6 +3,9 @@
 ::
 |_  [eny=@uv runs=@ud]
 +$  result  [defy=(unit vase) runs=@ drops=@]
+++  fate
+  |$  [sam]
+  $-(sam $?(? %drop [%alts (list vase)]))
 ++  norn                             :: gate for creating inputs
   |$  [sam]
   $-([@ud _og] sam)
