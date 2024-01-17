@@ -2,13 +2,14 @@
 :: the check should try.
 ::
 |_  [eny=@uv runs=@ud]
++$  result  [defy=(unit vase) runs=@ drops=@]
 ++  norn                             :: gate for creating inputs
   |$  [sam]
   $-([@ud _og] sam)
 ++  fin                              ::  successful ending
-  |=  [runs=@ drop=@]
-  ~&  [success-runs+runs drops+drop]
-  %.y
+  |=  [defy=(unit vase) runs=@ drop=@]
+  ^-  result
+  [defy=defy runs=runs drops=drop]
 ++  run
   |=  [vax=vase sam=vase]
   =/  tres=toon  (mong [q.vax q.sam] |=(^ ~))
@@ -19,22 +20,32 @@
     ::
     [%2 *]  ~&  err+(turn p.tres |=(tank ~(ram re +6)))  |
   ==
-++  check                            :: main test runner
+++  check
   |*  [vax=vase norn=(unit (norn)) alts=(unit $-(vase (list vase)))]
-  =?  runs  =(0 runs)  100   :: default to 100 runs
-  =+  run-i=0                :: counter of which run we are on
-  =+  size=1                 :: this will only grow
-  =+  sax=(slot 6 vax)       :: vase of the sample of the fate
+  ^-  ?
+  =/  res  %-  check-verbose  +6
+  ~&  [success-runs+runs.res drops+drops.res]
+  ?~  defy.res
+    &
+  ~&  u.defy.res
+  |
+++  check-verbose            :: main test runner
+  |*  [vax=vase norn=(unit (norn)) alts=(unit $-(vase (list vase)))]
+  =?  runs  =(0 runs)  100     :: default to 100 runs
+  =+  run-i=0                  :: counter of which run we are on
+  =+  size=1                   :: this will only grow
+  =+  sax=(slot 6 vax)         :: vase of the sample of the fate
   =+  rng=~(. og eny)
-  =+  drop=0                 :: counter of how many times we dropped
-  =+  tried=*(set noun)      :: all samples we have tried
-  =+  tries=0                :: how many times we have had sample collisions
+  =+  drop=0                   :: counter of how many times we dropped
+  =+  tried=*(set @)           :: all samples we have tried, hashed (good enough, saves memory)
+  =+  tries=0                  :: how many times we have had sample collisions
+  =/  hush=$-(* @)  mug        :: which hash to use to store tried samples.
   ::
   :: main loop
   ::
-  |-  ^-  ?
+  |-  ^-  result
   ?:  =(run-i runs)
-    (fin runs drop)
+    (fin ~ runs drop)
   =+  [fill-rng next-rng]=(split-rng rng)
   =/  sam=vase
     ?~  norn
@@ -51,13 +62,14 @@
   :: if we have tried this sample before, count the collision, keep going.
   :: unless there are too many collisions, then we give up (%tired)
   ::
-  ?:  (~(has in tried) q.sam)
+  =+  sam-hash=(hush q.sam)
+  ?:  (~(has in tried) sam-hash)
     =.  tries  +(tries)
     ?.  =(tries 1.000)
       $(rng next-rng, size new-size)
     ~&  %tired
-    (fin run-i drop)
-  =.  tried  (~(put in tried) q.sam)
+    (fin ~ run-i drop)
+  =.  tried  (~(put in tried) sam-hash)
   :: slam the fate with the random sample.
   :: virtualized slam to catch and report crashes.
   ::
@@ -87,8 +99,7 @@
     $(sunk (sink i.sunk))
   :: report the smallest sample we found.
   ::
-  ~&  [defy-with-sam+(noah simp) drops+drop]
-  %.n
+  (fin [~ simp] run-i drop)
 ++  sink
   :: automatically try to shrink the sample.
   ::
