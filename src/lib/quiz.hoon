@@ -5,7 +5,7 @@
 +$  result  [defy=(unit vase) runs=@ drops=@]
 ++  fate
   |$  [sam]
-  $-(sam $?(? %drop [%alts (list vase)]))
+  $-(sam $?(? %drop [%alts (list sam)]))
 ++  norn                             :: gate for creating inputs
   |$  [sam]
   $-([@ud _og] sam)
