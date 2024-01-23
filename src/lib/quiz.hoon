@@ -37,6 +37,7 @@
   |
 ++  check-verbose            :: main test runner
   |*  [vax=vase norn=(unit (norn)) alts=(unit $-(vase (list vase)))]
+  =+  fat=!<(fate vax)
   =?  runs  =(0 runs)  100     :: default to 100 runs
   =+  run-i=0                  :: counter of which run we are on
   =+  size=1                   :: this will only grow
@@ -83,10 +84,28 @@
   =?  drop  =(res %drop)  +(drop)    :: count number of %drop results.
   ?:  |(=(res %drop) =(res %.y))     :: %drop and %.y means we try again.
     $(run-i +(run-i), rng next-rng, size new-size)
-  ?>  =(res %.n)
-  :: fate either crashed or returned %.n.
+  :: fate either crashed, returned alternatives, or returned %.n.
   :: attempt shrinking.
   ::
+  :: if it returned alternatives, use the fate as the alts generator.
+  ?:  ?=  [%alts *]  res
+    =+  sunk=(turn +:res |=(* sax(q +6)))
+    =/  simp=*
+    :: TODO: repeated logic here, see if you can merge with the below somehow.
+    |-
+    ?~  sunk
+      sam
+    =+  res=(run vax sunk)
+    ?:  |(=(res %.y) =(res %drop))
+      $(sunk t.sunk)
+    ?:  ?=  [%alts *]  res
+      =.  sam   i.sunk
+    $(sunk (turn +:res |=(* sax(q +6))))
+    ?>  =(res %.n)
+    sam
+  (fin [~ simp] run-i drop)
+  :: if it just returned | use the standard simplifier, sink
+  ?>  =(res %.n)
   =+  sink=?~(alts sink u.alts)  :: user-supplied alts or default
   =+  sunk=(sink sam)
   =/  simp=vase

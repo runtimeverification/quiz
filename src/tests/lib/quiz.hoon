@@ -43,12 +43,12 @@
   =+  fate=!>(|=(@ud ^-($?(? %drop) ?:((gth +6 199) !! %.y))))
   %+  expect-eq  !>(|)  !>((check fate ~ ~))
 ++  test-jam-cue
+  ::=+  fate=!>(|=(a=* ^-(? ?:(=(a (cue (jam a))) & [%alts ~]))))
   =+  fate=!>(|=(a=* ^-(? =(a (cue (jam a))))))
   :: This is a particular instance where jam would fail correct encoding in vere 2.12
   =+  gief=((const:norns.quiz noun) (bex (bex 30)))
   :: The standard alternatives, e.g. (sub (bex (bex 30)) 1), cause jam to run out of memory.
   :: So we specify we are not interested in any alternatives.
-  =+  alts=(|=(* ~))
   :: We can't use expect-eq as that would attempt to print the actual defying sample, which is too large.
   %-  expect  !>(=(~ defy:(check-verbose.quiz fate `gief `|=(* ~))))
 --
